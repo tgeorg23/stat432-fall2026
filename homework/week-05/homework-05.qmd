@@ -1,0 +1,695 @@
+---
+title: "Homework 05"
+pagetitle: "Homework 05"
+body-classes: "lecture-page practice-page"
+format:
+  html:
+    embed-resources: true
+    html-math-method: mathml
+    page-layout: full
+    toc: true
+    toc-location: body
+    toc-title: "On this page"
+    toc-depth: 2
+    code-fold: true
+    code-summary: "Show the workflow"
+---
+
+Set a random seed before each simulation question and report it. You may use standard packages unless a question asks you to write the calculation yourself. Use equal neighbor weights throughout. Here $p$ counts the covariates used to measure distance; do not add an intercept column to a KNN predictor matrix. R and Python use different random-number generators, so their exact simulation results need not agree.
+
+## Question 1: Estimate the bias and variance of KNN
+
+In our previous homework, we used repeated simulations to study the behavior of linear regression estimators. We will now use the same idea for KNN. Consider the regression model
+
+$$
+Y_i=f(\mathbf X_i)+\epsilon_i,
+\qquad
+f(\mathbf x)=0.5x_1+\sin(x_2)-0.3x_3^2,
+$$
+
+where the three covariates are independent standard normal variables and $\epsilon_i\sim\mathcal N(0,0.1^2)$ independently of the covariates and other observations. Generate $n=400$ training observations. Our goal is to estimate the mean response at
+
+$$
+\mathbf x_0=(0.5,0.7,1)^{\mathsf T}.
+$$
+
+Use Euclidean distance and consider $k=1,3,5,\ldots,29$.
+
+a. Calculate $f(\mathbf x_0)$. Generate one training dataset and obtain the KNN prediction at $\mathbf x_0$ for each value of $k$.
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsRegressor
+
+np.random.seed(1)
+print("Seed: 1")
+
+n = 400
+k_values = list(range(1, 30, 2))
+x0 = np.array([0.5, 0.7, 1])
+
+def f(x):
+    return 0.5 * x[..., 0] + np.sin(x[..., 1]) - 0.3 * x[..., 2] ** 2
+
+true_value = f(x0)
+print("f(x0) =", true_value)
+
+x = np.random.normal(size=(n, 3))
+y = f(x) + np.random.normal(0, 0.1, size=n)
+
+for k in k_values:
+    knn_fit = KNeighborsRegressor(n_neighbors=k, weights="uniform")
+    knn_fit.fit(x, y)
+    pred = knn_fit.predict(x0.reshape(1, -1))[0]
+    print("Prediction for K =", k, ":", pred)
+```
+
+b. Independently repeat the generation of the training covariates and responses 200 times. Within each repetition, use the same training data for every value of $k$. Store the predictions in a matrix with 200 rows and one column for each value of $k$. Use this matrix to estimate the bias, variance, and mean squared error of the estimated mean response. Use divisor 200 when calculating the empirical variance, and verify numerically that
+
+$$
+\text{mean squared error}
+=\text{squared bias}+\text{variance}.
+$$
+
+Plot squared bias, variance, and mean squared error against $k$ in one figure. Explain the pattern and compare it with the bias-variance trade-off for ridge regression or lasso.
+
+```{python}
+np.random.seed(1)
+
+all_pred = np.zeros((200, len(k_values)))
+
+for i in range(200):
+    x = np.random.normal(size=(400, 3))
+    y = f(x) + np.random.normal(0, 0.1, size=400)
+
+    for j, k in enumerate(k_values):
+        knn_fit = KNeighborsRegressor(n_neighbors=k, weights="uniform")
+        knn_fit.fit(x, y)
+        all_pred[i, j] = knn_fit.predict(x0.reshape(1, -1))[0]
+
+mean_pred = np.mean(all_pred, axis=0)
+
+bias = mean_pred - true_value
+bias_squared = bias ** 2
+
+variance = np.mean((all_pred - mean_pred) ** 2, axis=0)
+
+mse = np.mean((all_pred - true_value) ** 2, axis=0)
+
+print("Squared Bias:", bias_squared)
+print("Variance:", variance)
+print("MSE:", mse)
+
+print(
+    "Maximum difference:",
+    np.max(np.abs(mse - (bias_squared + variance)))
+)
+
+fig, ax = plt.subplots(figsize=(6.5, 4.5), constrained_layout=True)
+ax.plot(k_values, bias_squared, "o-", color="#0072B2", label="Squared bias")
+ax.plot(k_values, variance, "s--", color="#D55E00", label="Variance")
+ax.plot(k_values, mse, "^-", color="#009E73", label="Mean squared error")
+
+ax.set_xlabel("Number of neighbors (k)", fontsize=12)
+ax.set_ylabel("Estimated error", fontsize=12)
+ax.set_title("KNN Bias-Variance Trade-off", fontsize=14)
+ax.set_xticks(k_values[::2])
+ax.margins(x=0.04, y=0.08)
+ax.grid(axis="y", color="#D9D9D9", linewidth=0.8)
+ax.legend(frameon=False)
+ax.tick_params(labelsize=10)
+plt.show()
+```
+
+As k increases, variance generally decreases because the prediction averages over more observations. Squared bias tends to increase because the neighborhood becomes larger and less local to x. The MSE reflects both effects. This is similar to ridge and lasso, where stronger regularization usually lowers variance but increases bias.
+
+## Question 2: Compare KNN with lasso
+
+Use the response model from Question 1, including the noise standard deviation $0.1$, but generate $p=30$ covariates. The response still depends only on the first three. Consider these two settings:
+
+- **Setting 1:** all 30 covariates are independent standard normal variables.
+- **Setting 2:** the covariates have a multivariate normal distribution with mean zero and covariance matrix $\boldsymbol\Sigma$, where
+
+  $$
+  \Sigma_{jj}=1,
+  \qquad
+  \Sigma_{jl}=0.8\quad\text{for }j\ne l.
+  $$
+
+In each setting, generate 400 training observations and 1,000 independent test observations. Fit 5NN using Euclidean distance on the supplied covariate scale. All covariates already have population variance one.
+
+For lasso, use a linear model containing the 30 covariates and a separately fitted, unpenalized intercept. Follow the Week 4 objective,
+
+$$
+L_\lambda(\boldsymbol\beta)
+=\frac{1}{2n}\left\lVert
+\widetilde{\mathbf y}-\mathbf X\boldsymbol\beta
+\right\rVert_2^2
++\lambda\lVert\boldsymbol\beta\rVert_1,
+$$
+
+where $\mathbf X\in\mathbb R^{n\times30}$ contains the centered and standardized covariates and $\widetilde{\mathbf y}$ is the centered training response. Select the penalty by ten-fold cross-validation over 41 logarithmically spaced values from $10^{-4}$ to $1$. Estimate all means and scales using only the training portion of each fold, with divisor equal to that portion's sample size. After selecting the penalty, refit on all training observations and apply the fitted transformations unchanged to the test observations. Do not add nonlinear terms to the lasso model.
+
+a. Fit both methods in each setting. Use the same training and test data for the two methods within a setting. Report their test MSE values in one table, together with the selected lasso penalty and the number of nonzero lasso slopes. You only need to generate one dataset for each setting; repeated simulations are not required.
+
+```{python}
+import numpy as np
+import pandas as pd
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.linear_model import Lasso
+from sklearn.model_selection import KFold
+
+np.random.seed(1)
+print("Seed: 1")
+
+n = 400
+n_test = 1000
+p = 30
+lambda_values = np.logspace(-4, 0, 41)
+
+def response(x):
+    return 0.5 * x[:, 0] + np.sin(x[:, 1]) - 0.3 * x[:, 2] ** 2
+
+def lasso_cv(x_train, y_train, x_test):
+
+    control = KFold(n_splits=10, shuffle=True, random_state=1)
+    cv_mse = np.zeros(len(lambda_values))
+
+    for train_index, val_index in control.split(x_train):
+
+        x_fold = x_train[train_index]
+        x_val = x_train[val_index]
+
+        y_fold = y_train[train_index]
+        y_val = y_train[val_index]
+
+        x_mean = np.mean(x_fold, axis=0)
+        x_sd = np.std(x_fold, axis=0, ddof=0)
+        y_mean = np.mean(y_fold)
+
+        x_fold_std = (x_fold - x_mean) / x_sd
+        x_val_std = (x_val - x_mean) / x_sd
+        y_fold_centered = y_fold - y_mean
+
+        for j, lam in enumerate(lambda_values):
+
+            lasso_fit = Lasso(
+                alpha=lam,
+                fit_intercept=False,
+                max_iter=100000
+            )
+
+            lasso_fit.fit(x_fold_std, y_fold_centered)
+
+            pred = y_mean + lasso_fit.predict(x_val_std)
+
+            cv_mse[j] += np.mean((pred - y_val) ** 2)
+
+    cv_mse = cv_mse / 10
+    best_lambda = lambda_values[np.argmin(cv_mse)]
+
+    x_mean = np.mean(x_train, axis=0)
+    x_sd = np.std(x_train, axis=0, ddof=0)
+    y_mean = np.mean(y_train)
+
+    x_train_std = (x_train - x_mean) / x_sd
+    x_test_std = (x_test - x_mean) / x_sd
+    y_train_centered = y_train - y_mean
+
+    lasso_fit = Lasso(
+        alpha=best_lambda,
+        fit_intercept=False,
+        max_iter=100000
+    )
+
+    lasso_fit.fit(x_train_std, y_train_centered)
+
+    pred = y_mean + lasso_fit.predict(x_test_std)
+
+    nonzero = np.sum(lasso_fit.coef_ != 0)
+
+    return pred, best_lambda, nonzero
+
+
+# Setting 1
+x_train1 = np.random.normal(size=(n, p))
+x_test1 = np.random.normal(size=(n_test, p))
+
+y_train1 = response(x_train1) + np.random.normal(0, 0.1, size=n)
+y_test1 = response(x_test1) + np.random.normal(0, 0.1, size=n_test)
+
+knn_fit1 = KNeighborsRegressor(n_neighbors=5, weights="uniform")
+knn_fit1.fit(x_train1, y_train1)
+knn_pred1 = knn_fit1.predict(x_test1)
+
+knn_mse1 = np.mean((knn_pred1 - y_test1) ** 2)
+
+lasso_pred1, lambda1, nonzero1 = lasso_cv(
+    x_train1,
+    y_train1,
+    x_test1
+)
+
+lasso_mse1 = np.mean((lasso_pred1 - y_test1) ** 2)
+
+
+# Setting 2
+Sigma = np.full((p, p), 0.8)
+np.fill_diagonal(Sigma, 1)
+
+x_train2 = np.random.multivariate_normal(
+    np.zeros(p),
+    Sigma,
+    size=n
+)
+
+x_test2 = np.random.multivariate_normal(
+    np.zeros(p),
+    Sigma,
+    size=n_test
+)
+
+y_train2 = response(x_train2) + np.random.normal(0, 0.1, size=n)
+y_test2 = response(x_test2) + np.random.normal(0, 0.1, size=n_test)
+
+knn_fit2 = KNeighborsRegressor(n_neighbors=5, weights="uniform")
+knn_fit2.fit(x_train2, y_train2)
+knn_pred2 = knn_fit2.predict(x_test2)
+
+knn_mse2 = np.mean((knn_pred2 - y_test2) ** 2)
+
+lasso_pred2, lambda2, nonzero2 = lasso_cv(
+    x_train2,
+    y_train2,
+    x_test2
+)
+
+lasso_mse2 = np.mean((lasso_pred2 - y_test2) ** 2)
+
+
+results = pd.DataFrame({
+    "Setting": [1, 2],
+    "KNN MSE": [knn_mse1, knn_mse2],
+    "Lasso MSE": [lasso_mse1, lasso_mse2],
+    "Selected Lambda": [lambda1, lambda2],
+    "Nonzero Slopes": [nonzero1, nonzero2]
+})
+
+print(results)
+```
+
+b. Compare the results between the two settings. Explain how correlation can change the usefulness of Euclidean neighborhoods, and why lasso does not use all covariates in the same way as KNN.
+
+In Setting 1, all 30 covariates are independent. Since KNN uses all 30 variables when calculating distance, the 27 variables that do not directly affect the response can make it harder to find useful neighbors.
+In Setting 2, the covariates are highly correlated, so the extra dimensions contain less independent information. This can make Euclidean distance more useful because observations that are close in one variable also tend to be similar in the others.
+Lasso treats the covariates differently because it can shrink some coefficients all the way to zero. KNN does not do this, since every covariate contributes to the distance calculation.
+
+c. The response model contains $\sin(X_2)$ and $X_3^2$, but the lasso fit uses only linear terms. Explain how this difference affects the comparison. Would the results justify a general claim that correlation always helps KNN, or that one method is always better? Explain why.
+
+The true response contains both sin(X2) and X3^2, but the lasso model only uses linear terms. Because of this, lasso cannot perfectly represent the true response function. KNN does not assume a linear relationship, so it can capture nonlinear patterns if the neighborhoods are useful.
+These results would not justify saying that correlation always helps KNN or that one method is always better. The results depend on the number of variables, correlation structure, sample size, irrelevant covariates, and whether the fitted model matches the true relationship.
+
+## Question 3: Observed dimension and latent dimension
+
+The lecture's handwritten digit example shows that KNN can work with many measured covariates. We will use a simulation to investigate why the structure of those covariates matters.
+
+Let $p=100$ be the number of observed covariates and let $m$ be the number of latent variables. For each observation, generate
+
+$$
+\mathbf X_i=\mathbf A\mathbf Z_i+\boldsymbol\eta_i,
+\qquad
+Y_i=Z_{i1}+Z_{i2}+\epsilon_i,
+$$
+
+where $\mathbf A\in\mathbb R^{100\times m}$ has independent entries from Uniform$[-2,2]$. The entries of $\mathbf Z_i\in\mathbb R^m$ and $\boldsymbol\eta_i\in\mathbb R^{100}$, and the scalar $\epsilon_i$, are independent standard normal variables, also independent of $\mathbf A$. Generate $\mathbf A$ once and use it for all training and test observations in that dataset.
+
+Compare $m=3$ and $m=30$. In each setting, generate 200 training observations and 200 independent test observations. Fit KNN using only the 100 observed covariates in $\mathbf X$, with Euclidean distance on their generated scale. The latent variables in $\mathbf Z$ are used to generate the data but are not available to the fitted model. Consider $k=2,10,18,\ldots,82$.
+
+a. Generate one dataset for each value of $m$. Fit KNN for every value of $k$ and calculate test MSE. Within a setting, use the same training and test observations for all values of $k$.
+
+```{python}
+import numpy as np
+from sklearn.neighbors import KNeighborsRegressor
+
+np.random.seed(1)
+print("Seed: 1")
+
+p = 100
+n = 200
+n_test = 200
+
+k_values = list(range(2, 83, 8))
+
+for m in [3, 30]:
+
+    A = np.random.uniform(-2, 2, size=(p, m))
+
+    z_train = np.random.normal(size=(n, m))
+    z_test = np.random.normal(size=(n_test, m))
+
+    eta_train = np.random.normal(size=(n, p))
+    eta_test = np.random.normal(size=(n_test, p))
+
+    x_train = z_train @ A.T + eta_train
+    x_test = z_test @ A.T + eta_test
+
+    y_train = (
+        z_train[:, 0]
+        + z_train[:, 1]
+        + np.random.normal(size=n)
+    )
+
+    y_test = (
+        z_test[:, 0]
+        + z_test[:, 1]
+        + np.random.normal(size=n_test)
+    )
+
+    print("m =", m)
+
+    for k in k_values:
+
+        knn_fit = KNeighborsRegressor(
+            n_neighbors=k,
+            weights="uniform"
+        )
+
+        knn_fit.fit(x_train, y_train)
+        pred = knn_fit.predict(x_test)
+
+        mse = np.mean((pred - y_test) ** 2)
+
+        print("K =", k, "MSE =", mse)
+```
+
+b. Repeat the complete experiment 50 times, generating a new $\mathbf A$ and new observations in each repetition. Plot average test MSE against $k$, with one curve for each value of $m$. These curves compare the specified choices of $k$ in a controlled simulation; they are not a cross-validation procedure for selecting a final model.
+
+```{python}
+import matplotlib.pyplot as plt
+
+np.random.seed(1)
+
+all_mse = np.zeros((50, 2, len(k_values)))
+
+m_values = [3, 30]
+
+for r in range(50):
+
+    for l, m in enumerate(m_values):
+
+        A = np.random.uniform(-2, 2, size=(p, m))
+
+        z_train = np.random.normal(size=(n, m))
+        z_test = np.random.normal(size=(n_test, m))
+
+        eta_train = np.random.normal(size=(n, p))
+        eta_test = np.random.normal(size=(n_test, p))
+
+        x_train = z_train @ A.T + eta_train
+        x_test = z_test @ A.T + eta_test
+
+        y_train = (
+            z_train[:, 0]
+            + z_train[:, 1]
+            + np.random.normal(size=n)
+        )
+
+        y_test = (
+            z_test[:, 0]
+            + z_test[:, 1]
+            + np.random.normal(size=n_test)
+        )
+
+        for j, k in enumerate(k_values):
+
+            knn_fit = KNeighborsRegressor(
+                n_neighbors=k,
+                weights="uniform"
+            )
+
+            knn_fit.fit(x_train, y_train)
+            pred = knn_fit.predict(x_test)
+
+            all_mse[r, l, j] = np.mean(
+                (pred - y_test) ** 2
+            )
+
+average_mse = np.mean(all_mse, axis=0)
+
+plt.figure(figsize=(9, 6))
+
+plt.plot(
+    k_values,
+    average_mse[0],
+    "o-",
+    label="m = 3"
+)
+
+plt.plot(
+    k_values,
+    average_mse[1],
+    "o-",
+    label="m = 30"
+)
+
+plt.xlabel("K")
+plt.ylabel("Average Test MSE")
+plt.title("KNN Test Error by Latent Dimension")
+plt.legend()
+
+plt.show()
+```
+
+c. Both settings have 100 observed covariates, and the response depends on only two latent variables. Explain why their KNN performance can still differ. What role does the noise $\boldsymbol\eta_i$ play, and why are the observed data not confined exactly to an $m$-dimensional linear space?
+
+Both settings have 100 observed covariates, but their underlying structure is different. When m=3, most of the variation in the observed variables comes from only three latent variables. This makes observations that are close in the observed space more likely to also be close in the important latent variables.
+When m=30, there are many more latent directions affecting the observed variables. This makes Euclidean distance less focused on z1 and z2, which are the two variables that actually determine the response.
+The noise term eta also adds independent noise to all 100 observed variables. Because of this, the observations do not lie exactly on an m-dimensional linear space. They are scattered around that lower-dimensional structure.
+
+## Question 4: Classify handwritten digits
+
+Use `zip.train` and `zip.test` from the R package `ElemStatLearn`, as in the lecture. The package has been retired from the active CRAN repository. If needed, install the [archived package](https://cran.r-project.org/src/contrib/Archive/ElemStatLearn/ElemStatLearn_2015.6.26.2.tar.gz) into your usual R library, then load the two datasets. Python users can use the course copies of the same [training data](https://teazrq.github.io/stat432rpy/data/knn/zip-train.csv.gz) and [test data](https://teazrq.github.io/stat432rpy/data/knn/zip-test.csv.gz). These compressed CSV files have no headers and are included in the homework ZIP under `data/knn`. Run the Python code from the folder containing `data`.
+
+Each image has $16\times16=256$ pixel values. The first column is the digit label and the remaining columns are the pixel values. Use the first 1,000 rows of `zip.train` and the first 500 rows of `zip.test`. Use the original pixel values without standardization, and do not include the digit label in a distance calculation.
+
+For a test image $\mathbf x_0$ and a training image $\mathbf x_i$, the two distances are
+
+$$
+d_E(\mathbf x_0,\mathbf x_i)
+=\sqrt{\sum_{j=1}^{256}(x_{0j}-x_{ij})^2},
+\qquad
+d_M(\mathbf x_0,\mathbf x_i)
+=\sum_{j=1}^{256}|x_{0j}-x_{ij}|.
+$$
+
+a. Write a 5NN classification function that allows either Euclidean or Manhattan distance. For each test image, calculate its distances to the training images directly, find the five nearest, and return the most frequent digit label. Break distance ties by the smaller training row number and voting ties by the smallest digit. Do not use a built-in distance or KNN function for this part.
+
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+train = pd.read_csv(
+    "data/knn/zip-train.csv.gz",
+    header=None
+)
+
+test = pd.read_csv(
+    "data/knn/zip-test.csv.gz",
+    header=None
+)
+
+train = train.iloc[:1000]
+test = test.iloc[:500]
+
+y_train = train.iloc[:, 0].to_numpy().astype(int)
+x_train = train.iloc[:, 1:].to_numpy()
+
+y_test = test.iloc[:, 0].to_numpy().astype(int)
+x_test = test.iloc[:, 1:].to_numpy()
+
+def knn5(x0, x_train, y_train, method):
+
+    if method == "euclidean":
+
+        d = np.sqrt(
+            np.sum((x_train - x0) ** 2, axis=1)
+        )
+
+    elif method == "manhattan":
+
+        d = np.sum(
+            np.abs(x_train - x0),
+            axis=1
+        )
+
+    row_number = np.arange(len(d))
+
+    order = np.lexsort(
+        (row_number, d)
+    )
+
+    nearest = order[:5]
+    nearest_labels = y_train[nearest]
+
+    counts = np.bincount(
+        nearest_labels,
+        minlength=10
+    )
+
+    return np.argmax(counts)
+```
+
+b. Apply the classifier to all 500 test images using each distance. For each fit, report the test classification error and a $10\times10$ confusion matrix, with rows representing predicted digits and columns representing true digits. Keep all digit labels from 0 through 9 in the matrix, including any with a zero count. Which digits are most often confused with one another?
+
+```{python}
+euclidean_pred = np.zeros(500, dtype=int)
+manhattan_pred = np.zeros(500, dtype=int)
+
+for i in range(500):
+
+    euclidean_pred[i] = knn5(
+        x_test[i],
+        x_train,
+        y_train,
+        "euclidean"
+    )
+
+    manhattan_pred[i] = knn5(
+        x_test[i],
+        x_train,
+        y_train,
+        "manhattan"
+    )
+
+euclidean_error = np.mean(
+    euclidean_pred != y_test
+)
+
+manhattan_error = np.mean(
+    manhattan_pred != y_test
+)
+
+print("Euclidean Error:", euclidean_error)
+print("Manhattan Error:", manhattan_error)
+
+euclidean_table = pd.crosstab(
+    pd.Series(euclidean_pred, name="Prediction"),
+    pd.Series(y_test, name="Observed")
+)
+
+euclidean_table = euclidean_table.reindex(
+    index=range(10),
+    columns=range(10),
+    fill_value=0
+)
+
+manhattan_table = pd.crosstab(
+    pd.Series(manhattan_pred, name="Prediction"),
+    pd.Series(y_test, name="Observed")
+)
+
+manhattan_table = manhattan_table.reindex(
+    index=range(10),
+    columns=range(10),
+    fill_value=0
+)
+
+print("Euclidean Confusion Matrix")
+print(euclidean_table)
+
+print("Manhattan Confusion Matrix")
+print(manhattan_table)
+```
+
+The digits that are most often confused can be found by looking at the largest off-diagonal entries in each confusion matrix. These represent cases where one true digit is repeatedly predicted as another digit.
+
+c. For Euclidean distance, display three incorrectly classified test images, together with their true and predicted labels. Comment on whether the mistakes are visually understandable. Compare the overall results of the two distance measures. Can they have similar total error while making mistakes on different images? Use your predictions to support your answer.
+
+```{python}
+wrong = np.where(
+    euclidean_pred != y_test
+)[0]
+
+for i in wrong[:3]:
+
+    plt.figure(figsize=(3, 3))
+
+    plt.imshow(
+        x_test[i].reshape(16, 16),
+        cmap="gray"
+    )
+
+    plt.title(
+        f"True: {y_test[i]}, Predicted: {euclidean_pred[i]}"
+    )
+
+    plt.xticks([])
+    plt.yticks([])
+
+    plt.show()
+
+
+euclidean_wrong = euclidean_pred != y_test
+manhattan_wrong = manhattan_pred != y_test
+
+print(
+    "Wrong for both:",
+    np.sum(
+        euclidean_wrong & manhattan_wrong
+    )
+)
+
+print(
+    "Only Euclidean wrong:",
+    np.sum(
+        euclidean_wrong & ~manhattan_wrong
+    )
+)
+
+print(
+    "Only Manhattan wrong:",
+    np.sum(
+        ~euclidean_wrong & manhattan_wrong
+    )
+)
+```
+
+The incorrect classifications are visually understandable if the written digit looks similar to another digit or has an unusual shape. Some digits may also be faint or incomplete, which can make them harder to classify.
+Euclidean and Manhattan distance can have similar overall classification errors while still making mistakes on different images. The counts above show how many images were missed by both methods and how many were missed by only one of the two methods. This happens because Euclidean and Manhattan distance measure similarity between pixel values differently.
+
+## Question 5: Create a plot-formatting skill
+
+Create a short `SKILL.md` file for improving the formatting of STAT 432 homework plots. You may use AI to help write it.
+
+a. Include a title, a description, and a few formatting rules. The description should limit the skill to STAT 432 homework plot improvements and require an explicit request to use it. Your rules should address margins, titles, axes, labels, colors, and sizes for plots produced in R or Python. Keep them portable: do not refer to specific homework questions.
+
+b. Ask your agent to install the skill. Explicitly call it to improve the plot from Question 1, then compare the original and revised versions. Do you like the changes? You may revise the skill and test it a couple more times, or uninstall it if it remains unhelpful.
+
+The original plot used a 9 by 6 inch figure, the generic axis labels "K" and "Error," Matplotlib's default colors, identical circle markers, and no grid. The revised plot preserves the same data and calculations, but uses a 6.5 by 4.5 inch figure, labels the axes "Number of neighbors (k)" and "Estimated error," reduces the x-axis tick count, and distinguishes the three curves with color, marker shape, and line style. It also adds a light horizontal grid and uses a layout with margins for the title and labels. **Yes, I like the changes.** After viewing the revised plot output, I found the title and labels fit clearly, and the distinct visual cues make the curves easier to follow without changing their statistical meaning.
+
+c. Append your final `SKILL.md` content to your submission and briefly explain your choices and experience.
+
+The final `SKILL.md` is:
+
+````markdown
+---
+name: format-homework-plots
+description: Use only when the user explicitly asks to use this skill to improve the formatting of a STAT 432 homework plot.
+---
+
+# STAT 432 Plot Formatting
+
+- Preserve the plotted data, calculations, and statistical meaning. Change formatting only unless the user asks for more.
+- Leave enough outer margin for titles, axis labels, tick labels, and legends; use the plotting library's layout tools to prevent clipping.
+- Give each plot a concise, informative title. Label both axes clearly and include units when relevant; use readable tick spacing and number formats.
+- Choose a colorblind-friendly palette with sufficient contrast. Use line styles or markers as well as color when comparing multiple series.
+- Start with a figure about 6.5 by 4.5 inches, 12-point axis labels, and a 14-point title; adjust dimensions and text sizes for the number of panels and the intended output size.
+- Apply equivalent settings in the existing R or Python plotting code, following its current plotting library and style.
+````
+
+I chose an opt-in description so the skill applies only when I request help with STAT 432 plots. Its rules are portable across R and Python because they describe formatting goals and defer to the plotting library already in use. Margins prevent clipping, informative titles and labels improve interpretation, and color combined with marker or line-style differences makes multiple curves easier to distinguish. The suggested dimensions and font sizes give a readable starting point while allowing adjustment for the plot. My experience using the skill was straightforward: I asked for installation, invoked it by name, and checked the rendered result against the original. One test showed that the rules produced the changes I wanted, so I kept the skill without another revision.
+
+
+
