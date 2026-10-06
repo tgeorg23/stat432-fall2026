@@ -236,8 +236,16 @@ Choose **one specific mistake or item for improvement** from any question in eit
 
 1. **Identify the mistake or item for improvement.** State which report and question you selected, and briefly describe what is wrong or could be improved. Examples include incorrect code, a calculation error, a misinterpretation of results, a plot that could communicate the findings more clearly, or anything else you think could be done better.
 
+In problem 3, it asks to compare m = 3 and m = 30, but in the response to part c, there is no comparison of the two dimensional spaces. Direct explanation comparing the two dimensions would address this part of the problem.
+
 2. **Explain your assessment.** Quote the relevant text, code, or figure caption exactly. Explain why the selected answer is incorrect or how it could be improved, referring to its reasoning, calculations, code, figures, or interpretation. **Complete this part yourself, without AI assistance.**
+
+"The points in the m-dimensional space will be sparser for larger m, if there is a fixed number of total points." The response could be improved by comparing m = 3 and m = 30 instead of just "for larger m" so that specific results could be compared.
 
 3. **Provide a correction.** Write a corrected or improved answer to the selected question, including any calculations, code, or figures needed.
 
+When m = 3, the 100 observed covariates are driven by 3 variables, with low dimensional structure. When m = 30, the observed covariates are driven by 30 variables, with high dimensional structure. This difference causes the Euclidean distance to be less usefull for KNN since it would be harder to find close neighbors. This is proven by the test MSE for m = 30 being higher than that of m = 3.
+
 After completing your review, **open a GitHub Issue in the repository containing the report you selected**. Identify the report and question, and include your assessment and a detailed revision plan explaining what the author should change and why. Include a link to your posted GitHub Issue in your Homework 6 answer.
+
+https://github.com/ec-03/stat432-fall2026/issues/3
