@@ -2240,7 +2240,7 @@ vertical-align: -.125em;
 <h2 class="anchored" data-anchor-id="question-1-compare-knn-and-logistic-regression">Question 1: Compare KNN and logistic regression</h2>
 <p>Use <a href="data/breast-cancer.csv">breast-cancer.csv</a>, which contains 569 cases from the <a href="https://archive.ics.uci.edu/dataset/17/breast%2Bcancer%2Bwisconsin%2Bdiagnostic">Wisconsin Diagnostic Breast Cancer dataset</a>. Predict <code>y</code> (1 for malignant and 0 for benign) using <code>mean_radius</code>, <code>mean_texture</code>, and <code>mean_smoothness</code>.</p>
 <p>Set a random seed and randomly split the observations into 70% training and 30% test data. Use the same split for every model. Standardize the predictors using the training means and standard deviations, and apply the same transformations to the test data.</p>
-<div id="09f06afb" class="cell" data-execution_count="1">
+<div id="f6a20175" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
@@ -2272,7 +2272,7 @@ vertical-align: -.125em;
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>∈</mo><mo stretchy="false" form="prefix">{</mo><mn>5</mn><mo>,</mo><mn>15</mn><mo>,</mo><mn>25</mn><mo>,</mo><mn>35</mn><mo>,</mo><mn>45</mn><mo stretchy="false" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
 k\in\{5,15,25,35,45\}.
 </annotation></semantics></math></p>
-<div id="80b439a0" class="cell" data-execution_count="2">
+<div id="31bcfe91" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>logistic <span class="op">=</span> LogisticRegression(</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    C<span class="op">=</span>np.inf,</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    solver<span class="op">=</span><span class="st">&quot;lbfgs&quot;</span>,</span>
@@ -2305,7 +2305,7 @@ k\in\{5,15,25,35,45\}.
 <span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    knn_aucs[k] <span class="op">=</span> roc_auc_score(y_test, prob)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Using the estimated probabilities for <code>y = 1</code> on the test data, plot all six ROC curves in one figure and report their AUC values. Which of the six fitted models do you prefer? Give a brief justification based on your results.</p>
-<div id="06f2a1ca" class="cell" data-execution_count="3">
+<div id="74852903" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">8</span>))</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Logistic regression</span></span>
@@ -2367,7 +2367,7 @@ KNN k=45: 0.983</code></pre>
 k\in\{1,3,5,10,20\}.
 </annotation></semantics></math></p>
 <p>Use each fitted model to estimate probabilities for both the training and test observations. For training predictions, include each observation itself among its <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> nearest neighbors.</p>
-<div id="ba9287e2" class="cell" data-execution_count="4">
+<div id="9b864a08" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>k_values_q2 <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">20</span>]</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>train_aucs <span class="op">=</span> {}</span>
@@ -2394,7 +2394,7 @@ k\in\{1,3,5,10,20\}.
 <span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    test_aucs[k] <span class="op">=</span> roc_auc_score(y_test, test_prob)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>For each <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>, use a separate panel to show the training and test ROC curves together. Report both AUC values.</p>
-<div id="01bf452e" class="cell" data-execution_count="5">
+<div id="babafee1" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">15</span>, <span class="dv">10</span>))</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>axes <span class="op">=</span> axes.flatten()</span>
@@ -2469,11 +2469,19 @@ k=20: Train AUC=0.981, Test AUC=0.981</code></pre>
 <p>Open your repository’s <strong>Issues</strong> tab on GitHub to find the assignment. You may ask AI to explain GitHub Issues or help you locate the assignment.</p>
 <p>Choose <strong>one specific mistake or item for improvement</strong> from any question in either report.</p>
 <ol type="1">
-<li><p><strong>Identify the mistake or item for improvement.</strong> State which report and question you selected, and briefly describe what is wrong or could be improved. Examples include incorrect code, a calculation error, a misinterpretation of results, a plot that could communicate the findings more clearly, or anything else you think could be done better.</p></li>
-<li><p><strong>Explain your assessment.</strong> Quote the relevant text, code, or figure caption exactly. Explain why the selected answer is incorrect or how it could be improved, referring to its reasoning, calculations, code, figures, or interpretation. <strong>Complete this part yourself, without AI assistance.</strong></p></li>
-<li><p><strong>Provide a correction.</strong> Write a corrected or improved answer to the selected question, including any calculations, code, or figures needed.</p></li>
+<li><strong>Identify the mistake or item for improvement.</strong> State which report and question you selected, and briefly describe what is wrong or could be improved. Examples include incorrect code, a calculation error, a misinterpretation of results, a plot that could communicate the findings more clearly, or anything else you think could be done better.</li>
 </ol>
+<p>In problem 3, it asks to compare m = 3 and m = 30, but in the response to part c, there is no comparison of the two dimensional spaces. Direct explanation comparing the two dimensions would address this part of the problem.</p>
+<ol start="2" type="1">
+<li><strong>Explain your assessment.</strong> Quote the relevant text, code, or figure caption exactly. Explain why the selected answer is incorrect or how it could be improved, referring to its reasoning, calculations, code, figures, or interpretation. <strong>Complete this part yourself, without AI assistance.</strong></li>
+</ol>
+<p>“The points in the m-dimensional space will be sparser for larger m, if there is a fixed number of total points.” The response could be improved by comparing m = 3 and m = 30 instead of just “for larger m” so that specific results could be compared.</p>
+<ol start="3" type="1">
+<li><strong>Provide a correction.</strong> Write a corrected or improved answer to the selected question, including any calculations, code, or figures needed.</li>
+</ol>
+<p>When m = 3, the 100 observed covariates are driven by 3 variables, with low dimensional structure. When m = 30, the observed covariates are driven by 30 variables, with high dimensional structure. This difference causes the Euclidean distance to be less usefull for KNN since it would be harder to find close neighbors. This is proven by the test MSE for m = 30 being higher than that of m = 3.</p>
 <p>After completing your review, <strong>open a GitHub Issue in the repository containing the report you selected</strong>. Identify the report and question, and include your assessment and a detailed revision plan explaining what the author should change and why. Include a link to your posted GitHub Issue in your Homework 6 answer.</p>
+<p>https://github.com/ec-03/stat432-fall2026/issues/3</p>
 </section>
 
 </main>
