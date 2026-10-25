@@ -1,0 +1,59 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.55in]{geometry}
+\usepackage{amsmath}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\pagestyle{empty}
+
+\begin{document}
+\begin{center}
+{\normalsize\bfseries SVM Analysis: CHD Classification}
+\end{center}
+\vspace{-4pt}
+
+The South African Heart Disease data have 462 observations, nine predictors, and no missing values. The binary response \texttt{chd} has 160 positive and 302 negative cases; \texttt{famhist} is coded 1 for Present and 0 for Absent. Complete numeric predictors are suitable for SVM classification. With 34.6\% positive cases, error rate is interpretable alongside a majority-class baseline.
+
+I reserved a stratified 25\% test set (346 training, 116 test; seed 2026). Training-set candidates were linear SVMs (\(C=0.1,1,10\)) and RBF SVMs at those costs with \(\gamma\in\{\text{scale},0.01,0.1,1\}\), plus a majority baseline. Predictors were standardized within each of the same five stratified folds. The figure and table show mean CV error and its standard error (SE); the star marks the selected candidate.
+
+\begin{center}
+\pdfximage width 0.95\linewidth {svm-cv-errors.pdf}
+\pdfrefximage\pdflastximage
+\end{center}
+\vspace{-6pt}
+
+\begin{center}
+\setlength{\tabcolsep}{7pt}
+\renewcommand{\arraystretch}{0.88}
+\begin{tabular}{rllrr}
+\hline
+No. & Kernel & \(C\) & \(\gamma\) & CV error (SE) \\
+\hline
+1 & Linear & 0.1 & -- & 0.2861 (0.0248) \\
+2 & Linear & 1 & -- & 0.2890 (0.0214) \\
+3 & Linear & 10 & -- & 0.2918 (0.0219) \\
+4 & RBF & 0.1 & scale & 0.3468 (0.0010) \\
+5 & RBF & 0.1 & 0.01 & 0.3468 (0.0010) \\
+6 & RBF & 0.1 & 0.1 & 0.3468 (0.0010) \\
+7 & RBF & 0.1 & 1 & 0.3468 (0.0010) \\
+8 & RBF & 1 & scale & 0.3063 (0.0188) \\
+9 & RBF & 1 & 0.01 & 0.2976 (0.0206) \\
+10 & RBF & 1 & 0.1 & 0.3063 (0.0188) \\
+11 & RBF & 1 & 1 & 0.3613 (0.0047) \\
+12 & RBF & 10 & scale & 0.3582 (0.0334) \\
+13 & RBF & 10 & 0.01 & 0.3006 (0.0253) \\
+14 & RBF & 10 & 0.1 & 0.3581 (0.0292) \\
+15 & RBF & 10 & 1 & 0.3959 (0.0125) \\
+B & Majority & -- & -- & 0.3468 (0.0010) \\
+\hline
+\end{tabular}
+\end{center}
+\vspace{-5pt}
+
+The lowest CV error is linear \(C=0.1\) (0.2861, SE 0.0248); its one-SE threshold is 0.3110. I selected this linear model, preferring it over RBF models within that threshold. On the untouched test set, the selected/best linear SVM misclassified 28/116 (24.1\%, approximate SE 4.0\%); the best RBF SVM misclassified 32/116 (27.6\%, SE 4.1\%), and majority misclassified 40/116 (34.5\%, SE 4.4\%). The selected-model confusion matrix (observed rows, predicted columns; 0 then 1) is \(\begin{pmatrix}65&11\\17&23\end{pmatrix}\).
+
+The selected SVM improves on the majority baseline, but the single 116-case test estimate is noisy; small SVM differences do not establish an advantage. The limited grid and single split constrain conclusions; this classification analysis is not causal. Reproduce it with \texttt{svm\_analysis.py}.
+
+\clearpage
+\input{svm-skill-appendix.tex}
+
+\end{document}
